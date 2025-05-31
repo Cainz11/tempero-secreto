@@ -38,7 +38,15 @@ try {
                 ADD CONSTRAINT fk_notifications_user
                 FOREIGN KEY (related_user_id) REFERENCES users(id) ON DELETE SET NULL");
 
+    // Adicionar coluna remember_token na tabela users
+    $pdo->exec("ALTER TABLE users ADD COLUMN remember_token VARCHAR(64) NULL");
+    echo "Coluna remember_token adicionada com sucesso!\n";
+
     echo "Database structure updated successfully!\n";
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+    if ($e->getCode() == '42S21') { // Código de erro para coluna já existente
+        echo "A coluna remember_token já existe.\n";
+    } else {
+        echo "Erro ao adicionar coluna: " . $e->getMessage() . "\n";
+    }
 } 

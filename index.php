@@ -5,22 +5,25 @@ require_once 'includes/bootstrap.php';
 // Roteamento básico
 $route = $_GET['route'] ?? 'home';
 
+// Rotas que precisam ser processadas antes do header
+$pre_header_routes = ['logout', 'login', 'register'];
+
+// Se for uma rota que precisa ser processada antes do header
+if (in_array($route, $pre_header_routes)) {
+    include "pages/{$route}.php";
+    exit; // Importante para garantir que nada mais seja executado
+}
+
 // Verificar redirecionamentos antes de qualquer saída
 checkRedirects();
 
 // Incluir o header
 include 'includes/header.php';
 
-// Roteamento
+// Roteamento principal
 switch ($route) {
     case 'home':
         include 'pages/home.php';
-        break;
-    case 'login':
-        include 'pages/login.php';
-        break;
-    case 'register':
-        include 'pages/register.php';
         break;
     case 'view_recipe':
         include 'pages/view_recipe.php';
@@ -63,9 +66,6 @@ switch ($route) {
         break;
     case 'my_recipes':
         include 'pages/my_recipes.php';
-        break;
-    case 'logout':
-        include 'pages/logout.php';
         break;
     default:
         include 'pages/404.php';
