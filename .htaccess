@@ -1,0 +1,51 @@
+# Habilitar o mod_rewrite
+RewriteEngine On
+
+# Redirecionar para HTTPS (descomente se tiver SSL)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Proteger arquivos sensíveis
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Proteger diretórios
+Options -Indexes
+
+# Proteger arquivos de configuração
+<FilesMatch "^(config\.php|database\.php)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Permitir apenas métodos HTTP necessários
+<LimitExcept GET POST>
+    Order deny,allow
+    Deny from all
+</LimitExcept>
+
+# Configurações de segurança
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Configurações de PHP
+php_value upload_max_filesize 5M
+php_value post_max_size 6M
+php_value max_execution_time 30
+php_value max_input_time 60
+
+# Redirecionar erros para páginas personalizadas
+ErrorDocument 404 /404.php
+ErrorDocument 403 /403.php
+ErrorDocument 500 /500.php
+
+# Regras de rewrite para URLs amigáveis
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L] 
