@@ -3,60 +3,80 @@ CREATE DATABASE IF NOT EXISTS tempero_secreto;
 USE tempero_secreto;
 
 -- Tabela de usuários
-CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('user', 'admin') DEFAULT 'user',
+    full_name VARCHAR(100) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de categorias
-CREATE TABLE categories (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de receitas
-CREATE TABLE recipes (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    category_id INT NOT NULL,
+CREATE TABLE IF NOT EXISTS recipes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
-    description TEXT NOT NULL,
+    description TEXT,
     ingredients TEXT NOT NULL,
     instructions TEXT NOT NULL,
-    image VARCHAR(255),
-    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    preparation_time INT NOT NULL COMMENT 'Tempo em minutos',
+    servings INT NOT NULL,
+    difficulty ENUM('Fácil', 'Médio', 'Difícil') NOT NULL,
+    image_url VARCHAR(255),
+    user_id INT NOT NULL,
+    category_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
-);
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de comentários
-CREATE TABLE comments (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    user_id INT NOT NULL,
+    comment TEXT NOT NULL,
+    rating INT CHECK (rating >= 1 AND rating <= 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de favoritos
+CREATE TABLE IF NOT EXISTS favorites (
     user_id INT NOT NULL,
     recipe_id INT NOT NULL,
-    content TEXT NOT NULL,
-    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (recipe_id) REFERENCES recipes(id)
-);
+    PRIMARY KEY (user_id, recipe_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Inserir categorias padrão
-INSERT INTO categories (name) VALUES 
-('Entrada'),
-('Prato Principal'),
-('Sobremesa'),
-('Bebidas'),
-('Saladas'),
-('Sopas'),
-('Acompanhamentos'); 
+-- Inserir algumas categorias padrão
+INSERT INTO categories (name, description) VALUES
+('Entrada', 'Pratos para começar a refeição'),
+('Prato Principal', 'Pratos principais para sua refeição'),
+('Sobremesa', 'Sobremesas e doces'),
+('Bebidas', 'Bebidas e coquetéis'),
+('Lanches', 'Lanches rápidos e petiscos'),
+('Saladas', 'Saladas e pratos leves'),
+('Sopas', 'Sopas e caldos'),
+('Vegetariano', 'Pratos vegetarianos'),
+('Vegano', 'Pratos veganos'),
+('Sem Glúten', 'Pratos sem glúten');
+
+-- Criar um usuário administrador padrão
+-- Senha: admin123 (você deve alterar isso após o primeiro login)
+INSERT INTO users (username, email, password, full_name, is_admin) VALUES
+('admin', 'admin@temperosecreto.com', '$2y$10$8tDjcKhUGHJxCFJ3CZgqvOsxqcyNXhbA.yF.1KQxP6XAOl4tKoYyy', 'Administrador', 1); 

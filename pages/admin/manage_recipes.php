@@ -47,7 +47,7 @@ $status = isset($_GET['status']) ? sanitize($_GET['status']) : 'pending';
 $search = isset($_GET['search']) ? sanitize($_GET['search']) : '';
 
 // Construir a query base
-$query = "SELECT r.*, c.name as category_name, u.name as username 
+$query = "SELECT r.*, c.name as category_name, u.full_name as username 
           FROM recipes r 
           LEFT JOIN categories c ON r.category_id = c.id 
           LEFT JOIN users u ON r.user_id = u.id 
@@ -62,14 +62,14 @@ if ($status !== 'all') {
 }
 
 if ($search) {
-    $query .= " AND (r.title LIKE ? OR r.description LIKE ? OR u.name LIKE ?)";
+    $query .= " AND (r.title LIKE ? OR r.description LIKE ? OR u.full_name LIKE ?)";
     $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
 }
 
 // Contar total de registros para paginação
-$countStmt = $pdo->prepare(str_replace("r.*, c.name as category_name, u.name as username", "COUNT(*)", $query));
+$countStmt = $pdo->prepare(str_replace("r.*, c.name as category_name, u.full_name as username", "COUNT(*)", $query));
 $countStmt->execute($params);
 $total_recipes = $countStmt->fetchColumn();
 

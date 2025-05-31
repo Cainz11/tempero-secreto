@@ -4,158 +4,185 @@ if (!isAdmin()) {
     redirect(SITE_URL . '?route=home');
 }
 
-// Buscar estatísticas
-try {
-    // Total de receitas por status
-    $stmt = $pdo->query("
-        SELECT status, COUNT(*) as total 
-        FROM recipes 
-        GROUP BY status
-    ");
-    $recipes_by_status = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+// Carregar estatísticas
+$total_stats = getTotalStats();
+$daily_stats = getDailyStats(7); // últimos 7 dias
 
-    // Total de usuários
-    $stmt = $pdo->query("SELECT COUNT(*) FROM users");
-    $total_users = $stmt->fetchColumn();
+// Preparar dados para os gráficos
+$dates = [];
+$visits = [];
+$new_users = [];
+$new_recipes = [];
+$likes = [];
+$comments = [];
 
-    // Total de comentários pendentes
-    $stmt = $pdo->query("SELECT COUNT(*) FROM comments WHERE status = 'pending'");
-    $pending_comments = $stmt->fetchColumn();
-
-    // Total de categorias
-    $stmt = $pdo->query("SELECT COUNT(*) FROM categories");
-    $total_categories = $stmt->fetchColumn();
-
-    // Receitas mais recentes
-    $stmt = $pdo->query("
-        SELECT r.*, u.name as username, c.name as category_name
-        FROM recipes r
-        LEFT JOIN users u ON r.user_id = u.id
-        LEFT JOIN categories c ON r.category_id = c.id
-        ORDER BY r.created_at DESC
-        LIMIT 5
-    ");
-    $recent_recipes = $stmt->fetchAll();
-
-} catch (PDOException $e) {
-    setMessage('danger', 'Erro ao carregar estatísticas: ' . $e->getMessage());
+foreach ($daily_stats as $stat) {
+    $dates[] = date('d/m', strtotime($stat['date']));
+    $visits[] = $stat['visits_count'];
+    $new_users[] = $stat['new_users_count'];
+    $new_recipes[] = $stat['new_recipes_count'];
+    $likes[] = $stat['likes_count'];
+    $comments[] = $stat['comments_count'];
 }
 ?>
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Painel Administrativo</h2>
-        <div>
-            <a href="<?php echo SITE_URL; ?>?route=home" class="btn btn-secondary">
-                <i class="fas fa-home"></i> Voltar ao Site
-            </a>
-        </div>
-    </div>
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Dashboard Administrativo</h1>
 
-    <!-- Cards de Estatísticas -->
+    <!-- Cards de Estatísticas Totais -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
+        <div class="col-md-4 col-lg-2 mb-3">
+            <div class="card text-center h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Receitas Pendentes</h5>
-                    <p class="card-text display-6">
-                        <?php echo $recipes_by_status['pending'] ?? 0; ?>
-                    </p>
-                    <a href="<?php echo SITE_URL; ?>?route=manage_recipes&status=pending" class="text-white">
-                        Ver todas <i class="fas fa-arrow-right"></i>
-                    </a>
+                    <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                    <h5 class="card-title">Usuários</h5>
+                    <h3 class="mb-0"><?php echo number_format($total_stats['total_users']); ?></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
+        <div class="col-md-4 col-lg-2 mb-3">
+            <div class="card text-center h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Receitas Aprovadas</h5>
-                    <p class="card-text display-6">
-                        <?php echo $recipes_by_status['approved'] ?? 0; ?>
-                    </p>
-                    <a href="<?php echo SITE_URL; ?>?route=manage_recipes&status=approved" class="text-white">
-                        Ver todas <i class="fas fa-arrow-right"></i>
-                    </a>
+                    <i class="fas fa-book fa-2x text-success mb-2"></i>
+                    <h5 class="card-title">Receitas</h5>
+                    <h3 class="mb-0"><?php echo number_format($total_stats['total_recipes']); ?></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
+        <div class="col-md-4 col-lg-2 mb-3">
+            <div class="card text-center h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Comentários Pendentes</h5>
-                    <p class="card-text display-6">
-                        <?php echo $pending_comments; ?>
-                    </p>
-                    <a href="<?php echo SITE_URL; ?>?route=manage_comments" class="text-white">
-                        Ver todos <i class="fas fa-arrow-right"></i>
-                    </a>
+                    <i class="fas fa-heart fa-2x text-danger mb-2"></i>
+                    <h5 class="card-title">Likes</h5>
+                    <h3 class="mb-0"><?php echo number_format($total_stats['total_likes']); ?></h3>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
+        <div class="col-md-4 col-lg-2 mb-3">
+            <div class="card text-center h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Total de Usuários</h5>
-                    <p class="card-text display-6">
-                        <?php echo $total_users; ?>
-                    </p>
+                    <i class="fas fa-comments fa-2x text-info mb-2"></i>
+                    <h5 class="card-title">Comentários</h5>
+                    <h3 class="mb-0"><?php echo number_format($total_stats['total_comments']); ?></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2 mb-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-eye fa-2x text-warning mb-2"></i>
+                    <h5 class="card-title">Visualizações</h5>
+                    <h3 class="mb-0"><?php echo number_format($total_stats['total_views']); ?></h3>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Links Rápidos -->
-    <div class="row mb-4">
-        <div class="col-md-6">
+    <!-- Gráficos -->
+    <div class="row">
+        <!-- Gráfico de Visitas -->
+        <div class="col-md-6 mb-4">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Gerenciamento</h5>
+                    <h5 class="card-title mb-0">Visitas Diárias</h5>
                 </div>
                 <div class="card-body">
-                    <div class="list-group">
-                        <a href="<?php echo SITE_URL; ?>?route=manage_recipes" class="list-group-item list-group-item-action">
-                            <i class="fas fa-utensils"></i> Gerenciar Receitas
-                        </a>
-                        <a href="<?php echo SITE_URL; ?>?route=manage_comments" class="list-group-item list-group-item-action">
-                            <i class="fas fa-comments"></i> Gerenciar Comentários
-                        </a>
-                        <a href="<?php echo SITE_URL; ?>?route=manage_categories" class="list-group-item list-group-item-action">
-                            <i class="fas fa-tags"></i> Gerenciar Categorias
-                        </a>
-                    </div>
+                    <canvas id="visitsChart"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+
+        <!-- Gráfico de Atividades -->
+        <div class="col-md-6 mb-4">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Receitas Recentes</h5>
+                    <h5 class="card-title mb-0">Atividades Diárias</h5>
                 </div>
                 <div class="card-body">
-                    <?php if (empty($recent_recipes)): ?>
-                        <p class="text-muted">Nenhuma receita cadastrada.</p>
-                    <?php else: ?>
-                        <div class="list-group">
-                            <?php foreach ($recent_recipes as $recipe): ?>
-                                <a href="<?php echo SITE_URL; ?>?route=view_recipe&id=<?php echo $recipe['id']; ?>" 
-                                   class="list-group-item list-group-item-action" target="_blank">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1"><?php echo htmlspecialchars($recipe['title']); ?></h6>
-                                        <small class="text-muted">
-                                            <?php echo date('d/m/Y', strtotime($recipe['created_at'])); ?>
-                                        </small>
-                                    </div>
-                                    <small class="text-muted">
-                                        Por <?php echo htmlspecialchars($recipe['username']); ?> em 
-                                        <?php echo htmlspecialchars($recipe['category_name']); ?>
-                                    </small>
-                                </a>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
+                    <canvas id="activitiesChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Configuração dos gráficos
+const dates = <?php echo json_encode($dates); ?>;
+const visits = <?php echo json_encode($visits); ?>;
+const newUsers = <?php echo json_encode($new_users); ?>;
+const newRecipes = <?php echo json_encode($new_recipes); ?>;
+const likes = <?php echo json_encode($likes); ?>;
+const comments = <?php echo json_encode($comments); ?>;
+
+// Gráfico de Visitas
+new Chart(document.getElementById('visitsChart'), {
+    type: 'line',
+    data: {
+        labels: dates,
+        datasets: [{
+            label: 'Visitas',
+            data: visits,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Gráfico de Atividades
+new Chart(document.getElementById('activitiesChart'), {
+    type: 'bar',
+    data: {
+        labels: dates,
+        datasets: [
+            {
+                label: 'Novos Usuários',
+                data: newUsers,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgb(54, 162, 235)',
+                borderWidth: 1
+            },
+            {
+                label: 'Novas Receitas',
+                data: newRecipes,
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgb(75, 192, 192)',
+                borderWidth: 1
+            },
+            {
+                label: 'Likes',
+                data: likes,
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgb(255, 99, 132)',
+                borderWidth: 1
+            },
+            {
+                label: 'Comentários',
+                data: comments,
+                backgroundColor: 'rgba(255, 206, 86, 0.5)',
+                borderColor: 'rgb(255, 206, 86)',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script> 

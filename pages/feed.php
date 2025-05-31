@@ -10,7 +10,7 @@ $stmt = $pdo->query("SELECT * FROM categories ORDER BY name");
 $categories = $stmt->fetchAll();
 
 // Construir a query base
-$query = "SELECT r.*, c.name as category_name, u.username,
+$query = "SELECT r.*, r.image_url as image, c.name as category_name, u.username,
           (SELECT COUNT(*) FROM likes WHERE recipe_id = r.id) as likes_count,
           (SELECT COUNT(*) FROM views WHERE recipe_id = r.id) as views_count
           FROM recipes r 
@@ -64,7 +64,10 @@ $params[] = $offset;
 
 // Buscar receitas
 $stmt = $pdo->prepare($query);
-$stmt->execute($params);
+foreach ($params as $i => $param) {
+    $stmt->bindValue($i + 1, $param, is_int($param) ? PDO::PARAM_INT : PDO::PARAM_STR);
+}
+$stmt->execute();
 $recipes = $stmt->fetchAll();
 
 // Registrar visualização se o usuário estiver logado
@@ -138,8 +141,8 @@ if (isLoggedIn() && !empty($recipes)) {
             <?php foreach ($recipes as $recipe): ?>
                 <div class="col">
                     <div class="card h-100 shadow-sm">
-                        <?php if ($recipe['image']): ?>
-                            <img src="<?php echo SITE_URL . '/' . $recipe['image']; ?>" 
+                        <?php if ($recipe['image_url']): ?>
+                            <img src="<?php echo SITE_URL . '/uploads/' . htmlspecialchars($recipe['image_url']); ?>" 
                                  class="card-img-top" alt="<?php echo htmlspecialchars($recipe['title']); ?>"
                                  style="height: 200px; object-fit: cover;">
                         <?php else: ?>

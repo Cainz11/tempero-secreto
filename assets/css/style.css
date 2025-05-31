@@ -5,37 +5,140 @@ body {
     flex-direction: column;
 }
 
-footer {
-    margin-top: auto;
+.container {
+    flex: 1;
 }
 
-/* Estilos dos cards de receita */
+/* Estilos do cabeçalho */
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Notificações */
+.notification-item {
+    transition: background-color 0.3s;
+}
+
+.notification-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+}
+
+/* Cards de receitas */
 .recipe-card {
-    transition: transform 0.2s;
+    transition: transform 0.3s;
+    height: 100%;
 }
 
 .recipe-card:hover {
     transform: translateY(-5px);
 }
 
-.recipe-card .card-img-top {
+.recipe-image {
     height: 200px;
     object-fit: cover;
 }
 
-/* Estilos do formulário */
+.recipe-stats {
+    font-size: 0.9rem;
+}
+
+.like-btn {
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.like-btn:hover {
+    color: #dc3545 !important;
+}
+
+/* Formulários */
 .form-control:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* Imagem preview */
+#image-preview {
+    max-width: 100%;
+    max-height: 300px;
+    display: none;
+    margin-top: 10px;
+}
+
+/* Dashboard */
+.stats-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+    padding: 2rem 0;
+}
+
+footer a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+footer a:hover {
+    color: #fff;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .recipe-image {
+        height: 150px;
+    }
+    
+    .stats-card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
 }
 
 /* Estilos da página de receita */
-.recipe-image {
-    max-height: 400px;
-    object-fit: cover;
-    width: 100%;
-}
-
 .recipe-ingredients {
     background-color: #f8f9fa;
     padding: 1rem;

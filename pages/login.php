@@ -1,24 +1,37 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = sanitize($_POST['email']);
+    $email = trim($_POST['email']);
     $password = $_POST['password'];
     
     if (empty($email) || empty($password)) {
         setMessage('danger', 'Por favor, preencha todos os campos.');
     } else {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
-        
-        if ($user && password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_name'] = $user['name'];
-            $_SESSION['user_role'] = $user['role'];
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
             
-            setMessage('success', 'Login realizado com sucesso!');
-            redirect(SITE_URL);
-        } else {
-            setMessage('danger', 'Email ou senha inválidos.');
+            if ($user && password_verify($password, $user['password'])) {
+                // Login bem sucedido
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_name'] = $user['full_name'];
+                $_SESSION['is_admin'] = $user['is_admin'];
+                
+                setMessage('success', 'Login realizado com sucesso!');
+                
+                // Redirecionar para o painel admin se for administrador
+                if ($user['is_admin']) {
+                    header("Location: " . SITE_URL . "/?route=admin");
+                } else {
+                    header("Location: " . SITE_URL);
+                }
+                exit();
+            } else {
+                // Login falhou
+                setMessage('danger', 'Email ou senha inválidos.');
+            }
+        } catch (PDOException $e) {
+            setMessage('danger', 'Erro ao realizar login. Por favor, tente novamente.');
         }
     }
 }
@@ -32,14 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="card-body">
                 <form method="POST" action="">
-                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-                    
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
                         <input type="email" 
                                class="form-control" 
                                id="email" 
                                name="email" 
+                               value="<?= htmlspecialchars($email ?? '') ?>"
                                required>
                     </div>
                     

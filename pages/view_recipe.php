@@ -11,7 +11,7 @@ if ($recipe_id <= 0) {
 // Buscar a receita
 try {
     $stmt = $pdo->prepare("
-        SELECT r.*, u.name as username, c.name as category_name
+        SELECT r.*, u.full_name as username, c.name as category_name
         FROM recipes r
         LEFT JOIN users u ON r.user_id = u.id
         LEFT JOIN categories c ON r.category_id = c.id
@@ -50,7 +50,7 @@ try {
 
     // Buscar comentários da receita
     $stmt_comments = $pdo->prepare("
-        SELECT c.*, u.name as username
+        SELECT c.*, u.full_name as username
         FROM comments c
         LEFT JOIN users u ON c.user_id = u.id
         WHERE c.recipe_id = ? AND c.status = 'approved' -- Exibir apenas comentários aprovados
@@ -103,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 <h2><?php echo htmlspecialchars($recipe['title']); ?></h2>
                 <p class="text-muted">Por <?php echo htmlspecialchars($recipe['username']); ?> em <?php echo htmlspecialchars($recipe['category_name']); ?></p>
 
-                <?php if ($recipe['image']): ?>
-                    <img src="<?php echo SITE_URL . '/uploads/' . htmlspecialchars($recipe['image']); ?>" class="img-fluid mb-3" alt="Imagem da Receita">
+                <?php if ($recipe['image_url']): ?>
+                    <img src="<?php echo SITE_URL . '/uploads/' . htmlspecialchars($recipe['image_url']); ?>" class="img-fluid mb-3" alt="Imagem da Receita">
                 <?php else: ?>
                     <img src="<?php echo SITE_URL; ?>/assets/images/default-recipe.png" class="img-fluid mb-3" alt="Imagem Padrão">
                 <?php endif; ?>

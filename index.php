@@ -1,20 +1,12 @@
 <?php
-require_once 'config/config.php';
+// Carregar o bootstrap (configurações, funções e sessão)
+require_once 'includes/bootstrap.php';
 
 // Roteamento básico
 $route = $_GET['route'] ?? 'home';
 
-// Verificar se o usuário está logado para rotas protegidas
-$public_routes = ['home', 'login', 'register', 'view_recipe', 'feed'];
-if (!in_array($route, $public_routes) && !isLoggedIn()) {
-    redirect(SITE_URL . '?route=login');
-}
-
-// Verificar se o usuário é admin para rotas administrativas
-$admin_routes = ['admin', 'manage_recipes', 'manage_comments', 'manage_categories'];
-if (in_array($route, $admin_routes) && !isAdmin()) {
-    redirect(SITE_URL . '?route=home');
-}
+// Verificar redirecionamentos antes de qualquer saída
+checkRedirects();
 
 // Incluir o header
 include 'includes/header.php';
@@ -53,6 +45,27 @@ switch ($route) {
         break;
     case 'manage_categories':
         include 'pages/admin/manage_categories.php';
+        break;
+    case 'manage_approvals':
+        include 'pages/admin/manage_approvals.php';
+        break;
+    case 'manage_users':
+        include 'pages/admin/manage_users.php';
+        break;
+    case 'site_settings':
+        include 'pages/admin/site_settings.php';
+        break;
+    case 'settings':
+        include 'pages/settings.php';
+        break;
+    case 'profile':
+        include 'pages/profile.php';
+        break;
+    case 'my_recipes':
+        include 'pages/my_recipes.php';
+        break;
+    case 'logout':
+        include 'pages/logout.php';
         break;
     default:
         include 'pages/404.php';

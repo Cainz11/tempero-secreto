@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Processar upload da imagem
-    $image_path = null;
+    $image_url = null;
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $file = $_FILES['image'];
         
@@ -57,17 +57,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             // Criar diretório de uploads se não existir
-            if (!file_exists(UPLOAD_DIR)) {
-                mkdir(UPLOAD_DIR, 0777, true);
+            $upload_dir = 'uploads/recipes/';
+            if (!file_exists($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
             }
 
             // Gerar nome único para o arquivo
             $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
             $filename = uniqid() . '.' . $extension;
-            $image_path = 'uploads/' . $filename;
+            $image_url = 'recipes/' . $filename;
 
             // Mover arquivo
-            if (!move_uploaded_file($file['tmp_name'], UPLOAD_DIR . $filename)) {
+            if (!move_uploaded_file($file['tmp_name'], 'uploads/' . $image_url)) {
                 $errors[] = 'Erro ao fazer upload da imagem.';
             }
         }
@@ -76,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO recipes (user_id, category_id, title, description, ingredients, instructions, image, status)
+                INSERT INTO recipes (user_id, category_id, title, description, ingredients, instructions, image_url, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
             ");
             
@@ -87,10 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $description,
                 $ingredients,
                 $instructions,
-                $image_path
+                $image_url
             ])) {
-                setMessage('success', 'Receita cadastrada com sucesso! Aguarde a aprovação do administrador.');
-                redirect(SITE_URL . '?route=home');
+                setMessage('success', 'Sua receita foi cadastrada e está aguardando aprovação do administrador. Você pode acompanhar o status dela no seu perfil.');
+                redirect(SITE_URL . '?route=profile');
             } else {
                 $errors[] = 'Erro ao cadastrar receita. Tente novamente.';
             }

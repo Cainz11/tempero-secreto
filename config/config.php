@@ -1,7 +1,7 @@
 <?php
 // Configurações gerais
 define('SITE_NAME', 'Tempero Secreto');
-define('SITE_URL', 'http://localhost/tempero-secreto/tempero-secreto');
+define('SITE_URL', 'http://localhost/tempero-secreto');
 
 // Configurações de upload
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
@@ -29,6 +29,5 @@ date_default_timezone_set('America/Sao_Paulo');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Incluir arquivos necessários
-require_once __DIR__ . '/database.php';
-require_once __DIR__ . '/../includes/functions.php'; 
+// Incluir arquivo de banco de dados
+require_once __DIR__ . '/database.php'; 
