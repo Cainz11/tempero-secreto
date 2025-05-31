@@ -15,6 +15,16 @@ body {
     font-weight: bold;
 }
 
+/* Dashboard icon */
+.nav-link .fa-tachometer-alt {
+    color: #fff;
+    transition: color 0.3s ease;
+}
+
+.nav-link:hover .fa-tachometer-alt {
+    color: #28a745;
+}
+
 /* Notificações */
 .notification-item {
     transition: background-color 0.3s;

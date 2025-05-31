@@ -59,16 +59,12 @@
                 <ul class="navbar-nav">
                     <?php if (isLoggedIn()): ?>
                         <?php if (isAdmin()): ?>
-                            <li class="nav-item">
-                                <a class="nav-link" href="<?php echo SITE_URL; ?>?route=admin">
-                                    <i class="fas fa-cog"></i> Painel Admin
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="<?php echo SITE_URL; ?>?route=manage_approvals">
-                                    <i class="fas fa-tasks"></i> Aprovações Pendentes
+                            <!-- Menu do Administrador -->
+                            <li class="nav-item dropdown me-3">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-shield-alt"></i> Admin
                                     <?php
-                                    // Buscar contagem de itens pendentes
                                     $pending_query = $pdo->query("
                                         SELECT 
                                             (SELECT COUNT(*) FROM recipes WHERE status = 'pending') +
@@ -80,14 +76,59 @@
                                     <span class="badge bg-danger"><?php echo $pending_count; ?></span>
                                     <?php endif; ?>
                                 </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="<?php echo SITE_URL; ?>?route=manage_recipes">
+                                            <i class="fas fa-utensils"></i> Gerenciar Receitas
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="<?php echo SITE_URL; ?>?route=manage_categories">
+                                            <i class="fas fa-tags"></i> Gerenciar Categorias
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="<?php echo SITE_URL; ?>?route=manage_users">
+                                            <i class="fas fa-users"></i> Gerenciar Usuários
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="<?php echo SITE_URL; ?>?route=manage_comments">
+                                            <i class="fas fa-comments"></i> Gerenciar Comentários
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="<?php echo SITE_URL; ?>?route=manage_approvals">
+                                            <i class="fas fa-tasks"></i> Aprovações Pendentes
+                                            <?php if ($pending_count > 0): ?>
+                                            <span class="badge bg-danger float-end"><?php echo $pending_count; ?></span>
+                                            <?php endif; ?>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="<?php echo SITE_URL; ?>?route=site_settings">
+                                            <i class="fas fa-cog"></i> Configurações do Site
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                         <?php endif; ?>
-                        
+
+                        <!-- Dashboard -->
+                        <?php if (isAdmin()): ?>
+                        <li class="nav-item me-3">
+                            <a class="nav-link" href="<?php echo SITE_URL; ?>?route=admin" title="Dashboard">
+                                <i class="fas fa-tachometer-alt fa-lg"></i>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+
                         <!-- Notificações -->
                         <li class="nav-item dropdown me-3">
                             <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" 
                                data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-bell"></i>
+                                <i class="fas fa-bell fa-lg"></i>
                                 <?php
                                 $unread_notifications = [];
                                 if (isLoggedIn()) {
