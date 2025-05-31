@@ -59,13 +59,6 @@
                 <ul class="navbar-nav">
                     <?php if (isLoggedIn()): ?>
                         <?php if (isAdmin()): ?>
-                            <!-- Dashboard -->
-                            <li class="nav-item me-3">
-                                <a class="nav-link" href="<?php echo SITE_URL; ?>?route=admin" title="Dashboard">
-                                    <i class="fas fa-tachometer-alt fa-lg"></i>
-                                </a>
-                            </li>
-
                             <!-- Menu do Administrador -->
                             <li class="nav-item dropdown me-3">
                                 <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" 
@@ -83,7 +76,7 @@
                                     <span class="badge bg-danger"><?php echo $pending_count; ?></span>
                                     <?php endif; ?>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
+                                <ul class="dropdown-menu">
                                     <li>
                                         <a class="dropdown-item" href="<?php echo SITE_URL; ?>?route=manage_recipes">
                                             <i class="fas fa-utensils"></i> Gerenciar Receitas
@@ -120,6 +113,15 @@
                                     </li>
                                 </ul>
                             </li>
+                        <?php endif; ?>
+
+                        <!-- Dashboard -->
+                        <?php if (isAdmin()): ?>
+                        <li class="nav-item me-3">
+                            <a class="nav-link" href="<?php echo SITE_URL; ?>?route=admin" title="Dashboard">
+                                <i class="fas fa-tachometer-alt fa-lg"></i>
+                            </a>
+                        </li>
                         <?php endif; ?>
 
                         <!-- Notificações -->
