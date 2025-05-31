@@ -66,3 +66,13 @@ CREATE TABLE views (
     FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
     UNIQUE KEY unique_view (user_id, recipe_id)
 ); 
+
+-- Inserir categorias padrão
+INSERT INTO categories (name) VALUES 
+('Entrada'),
+('Prato Principal'),
+('Sobremesa'),
+('Bebidas'),
+('Saladas'),
+('Sopas'),
+('Acompanhamentos'); 
