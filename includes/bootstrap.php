@@ -16,6 +16,7 @@ require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/recipe_actions.php';
+require_once __DIR__ . '/admin_functions.php';
 
 // Verificar se o usuário está logado
 if (isset($_SESSION['user_id'])) {
@@ -28,6 +29,10 @@ if (isset($_SESSION['user_id'])) {
         unset($_SESSION['user_id']);
         unset($_SESSION['user_name']);
         unset($_SESSION['is_admin']);
+    } else {
+        // Atualizar a sessão com os dados mais recentes
+        $_SESSION['user_name'] = $user['full_name'];
+        $_SESSION['is_admin'] = $user['is_admin'] == 1;
     }
 }
 

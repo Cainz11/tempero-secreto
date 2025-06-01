@@ -20,6 +20,28 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
+// Se for admin, carregar estatísticas do sistema
+if (isAdmin()) {
+    $total_stats = getAdminDashboardStats();
+    $daily_stats = getAdminDailyStats(7); // últimos 7 dias
+    $pending = getPendingItems();
+    
+    // Preparar dados para os gráficos
+    $dates = [];
+    $new_users = [];
+    $new_recipes = [];
+    $likes = [];
+    $comments = [];
+    
+    foreach ($daily_stats as $stat) {
+        $dates[] = date('d/m', strtotime($stat['date']));
+        $new_users[] = $stat['new_users_count'] ?? 0;
+        $new_recipes[] = $stat['new_recipes_count'] ?? 0;
+        $likes[] = $stat['likes_count'] ?? 0;
+        $comments[] = $stat['comments_count'] ?? 0;
+    }
+}
+
 // Buscar receitas do usuário
 $stmt = $pdo->prepare("
     SELECT r.*, c.name as category_name,
@@ -51,6 +73,30 @@ $rejected_recipes = array_filter($recipes, function($recipe) {
 });
 ?>
 
+<style>
+.admin-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(145deg, #ffffff, #f5f5f5);
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
+}
+.admin-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 8px 8px 20px rgba(0,0,0,0.15);
+}
+.chart-container {
+    position: relative;
+    margin: auto;
+    height: 300px;
+}
+.stat-icon {
+    padding: 15px;
+    border-radius: 50%;
+    margin-bottom: 15px;
+}
+</style>
+
 <div class="container py-4">
     <div class="row">
         <!-- Perfil do Usuário -->
@@ -61,13 +107,16 @@ $rejected_recipes = array_filter($recipes, function($recipe) {
                     <h3><?php echo htmlspecialchars($user['full_name']); ?></h3>
                     <p class="text-muted">@<?php echo htmlspecialchars($user['username']); ?></p>
                     <p>Membro desde <?php echo date('d/m/Y', strtotime($user['created_at'])); ?></p>
+                    <?php if (isAdmin()): ?>
+                        <span class="badge bg-danger">Administrador</span>
+                    <?php endif; ?>
                 </div>
             </div>
 
             <!-- Estatísticas -->
             <div class="card mt-4">
                 <div class="card-header">
-                    <h5 class="mb-0">Estatísticas</h5>
+                    <h5 class="mb-0">Minhas Estatísticas</h5>
                 </div>
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
@@ -96,8 +145,92 @@ $rejected_recipes = array_filter($recipes, function($recipe) {
             </div>
         </div>
 
-        <!-- Receitas do Usuário -->
+        <!-- Conteúdo Principal -->
         <div class="col-md-8">
+            <?php if (isAdmin()): ?>
+                <!-- Dashboard Administrativo -->
+                <div class="admin-dashboard mb-4">
+                    <h4 class="mb-4">Dashboard Administrativo</h4>
+                    
+                    <!-- Alertas -->
+                    <?php if ($pending['pending_recipes'] > 0 || $pending['pending_comments'] > 0): ?>
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-circle"></i> Itens Pendentes</h5>
+                            <?php if ($pending['pending_recipes'] > 0): ?>
+                                <p class="mb-1"><?php echo $pending['pending_recipes']; ?> receita(s) aguardando aprovação</p>
+                            <?php endif; ?>
+                            <?php if ($pending['pending_comments'] > 0): ?>
+                                <p class="mb-1"><?php echo $pending['pending_comments']; ?> comentário(s) aguardando aprovação</p>
+                            <?php endif; ?>
+                            <a href="<?php echo SITE_URL; ?>?route=manage_approvals" class="btn btn-warning btn-sm mt-2">
+                                Gerenciar Aprovações
+                            </a>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Cards de Estatísticas -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card admin-card text-center">
+                                <div class="card-body">
+                                    <div class="stat-icon bg-primary bg-opacity-10">
+                                        <i class="fas fa-users fa-2x text-primary"></i>
+                                    </div>
+                                    <h3><?php echo number_format($total_stats['total_users']); ?></h3>
+                                    <small class="text-muted">Usuários</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card admin-card text-center">
+                                <div class="card-body">
+                                    <div class="stat-icon bg-success bg-opacity-10">
+                                        <i class="fas fa-book fa-2x text-success"></i>
+                                    </div>
+                                    <h3><?php echo number_format($total_stats['total_recipes']); ?></h3>
+                                    <small class="text-muted">Receitas</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card admin-card text-center">
+                                <div class="card-body">
+                                    <div class="stat-icon bg-danger bg-opacity-10">
+                                        <i class="fas fa-heart fa-2x text-danger"></i>
+                                    </div>
+                                    <h3><?php echo number_format($total_stats['total_likes']); ?></h3>
+                                    <small class="text-muted">Curtidas</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card admin-card text-center">
+                                <div class="card-body">
+                                    <div class="stat-icon bg-info bg-opacity-10">
+                                        <i class="fas fa-comments fa-2x text-info"></i>
+                                    </div>
+                                    <h3><?php echo number_format($total_stats['total_comments']); ?></h3>
+                                    <small class="text-muted">Comentários</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico de Atividades -->
+                    <div class="card admin-card mb-4">
+                        <div class="card-header bg-transparent border-0">
+                            <h5 class="card-title mb-0">Atividades dos Últimos 7 Dias</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="activitiesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Minhas Receitas -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4>Minhas Receitas</h4>
                 <a href="<?php echo SITE_URL; ?>?route=add_recipe" class="btn btn-success">
@@ -199,7 +332,7 @@ $rejected_recipes = array_filter($recipes, function($recipe) {
                                         </p>
                                         <div class="btn-group">
                                             <a href="<?php echo SITE_URL; ?>?route=edit_recipe&id=<?php echo $recipe['id']; ?>" 
-                                               class="btn btn-warning btn-sm">Editar e Reenviar</a>
+                                               class="btn btn-warning btn-sm">Editar</a>
                                         </div>
                                     </div>
                                 </div>
@@ -208,127 +341,67 @@ $rejected_recipes = array_filter($recipes, function($recipe) {
                     </div>
                 <?php endif; ?>
             <?php endif; ?>
-
-            <!-- Dashboard Admin (apenas para administradores) -->
-            <?php if (isAdmin() && $user_id == $_SESSION['user_id']): ?>
-                <div class="card mt-4">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> Dashboard Administrativo</h5>
-                    </div>
-                    <div class="card-body">
-                        <?php
-                        // Buscar estatísticas administrativas
-                        $admin_stats = $pdo->query("
-                            SELECT 
-                                (SELECT COUNT(*) FROM recipes WHERE status = 'pending') as pending_recipes,
-                                (SELECT COUNT(*) FROM comments WHERE status = 'pending') as pending_comments,
-                                (SELECT COUNT(*) FROM recipes WHERE status = 'rejected') as rejected_recipes,
-                                (SELECT COUNT(*) FROM recipes WHERE status = 'approved') as total_recipes,
-                                (SELECT COUNT(*) FROM users) as total_users
-                        ")->fetch();
-
-                        // Buscar últimas receitas rejeitadas
-                        $rejected_recipes_query = $pdo->query("
-                            SELECT r.*, u.username, c.name as category_name 
-                            FROM recipes r 
-                            JOIN users u ON r.user_id = u.id 
-                            LEFT JOIN categories c ON r.category_id = c.id 
-                            WHERE r.status = 'rejected' 
-                            ORDER BY r.updated_at DESC 
-                            LIMIT 5
-                        ");
-                        $recent_rejected = $rejected_recipes_query->fetchAll();
-                        ?>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="card bg-warning text-dark h-100">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Receitas Pendentes</h6>
-                                        <h2 class="mb-0"><?php echo $admin_stats['pending_recipes']; ?></h2>
-                                        <a href="<?php echo SITE_URL; ?>?route=manage_approvals" class="stretched-link"></a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card bg-info text-dark h-100">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Comentários Pendentes</h6>
-                                        <h2 class="mb-0"><?php echo $admin_stats['pending_comments']; ?></h2>
-                                        <a href="<?php echo SITE_URL; ?>?route=manage_approvals" class="stretched-link"></a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card bg-danger text-white h-100">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Receitas Rejeitadas</h6>
-                                        <h2 class="mb-0"><?php echo $admin_stats['rejected_recipes']; ?></h2>
-                                        <a href="<?php echo SITE_URL; ?>?route=manage_approvals" class="stretched-link"></a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card bg-success text-white h-100">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Total de Receitas</h6>
-                                        <h2 class="mb-0"><?php echo $admin_stats['total_recipes']; ?></h2>
-                                        <a href="<?php echo SITE_URL; ?>?route=admin" class="stretched-link"></a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Últimas Receitas Rejeitadas -->
-                        <div class="mt-4">
-                            <h5 class="border-bottom pb-2">Últimas Receitas Rejeitadas</h5>
-                            <?php if (empty($recent_rejected)): ?>
-                                <p class="text-muted">Não há receitas rejeitadas recentemente.</p>
-                            <?php else: ?>
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>Receita</th>
-                                                <th>Autor</th>
-                                                <th>Categoria</th>
-                                                <th>Data</th>
-                                                <th>Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($recent_rejected as $recipe): ?>
-                                                <tr>
-                                                    <td><?php echo htmlspecialchars($recipe['title']); ?></td>
-                                                    <td><?php echo htmlspecialchars($recipe['username']); ?></td>
-                                                    <td><?php echo htmlspecialchars($recipe['category_name']); ?></td>
-                                                    <td><?php echo date('d/m/Y', strtotime($recipe['updated_at'])); ?></td>
-                                                    <td>
-                                                        <div class="btn-group btn-group-sm">
-                                                            <a href="<?php echo SITE_URL; ?>?route=view_recipe&id=<?php echo $recipe['id']; ?>" 
-                                                               class="btn btn-primary" title="Ver Receita">
-                                                                <i class="fas fa-eye"></i>
-                                                            </a>
-                                                            <a href="<?php echo SITE_URL; ?>?route=manage_approvals&review=<?php echo $recipe['id']; ?>" 
-                                                               class="btn btn-warning" title="Reavaliar">
-                                                                <i class="fas fa-sync-alt"></i>
-                                                            </a>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="text-end mt-2">
-                                    <a href="<?php echo SITE_URL; ?>?route=manage_approvals&filter=rejected" class="btn btn-outline-primary btn-sm">
-                                        Ver Todas as Receitas Rejeitadas
-                                    </a>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
         </div>
     </div>
-</div> 
+</div>
+
+<?php if (isAdmin()): ?>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Configuração dos gráficos
+const dates = <?php echo json_encode($dates); ?>;
+const newUsers = <?php echo json_encode($new_users); ?>;
+const newRecipes = <?php echo json_encode($new_recipes); ?>;
+const likes = <?php echo json_encode($likes); ?>;
+const comments = <?php echo json_encode($comments); ?>;
+
+// Gráfico de Atividades
+new Chart(document.getElementById('activitiesChart'), {
+    type: 'bar',
+    data: {
+        labels: dates,
+        datasets: [
+            {
+                label: 'Novos Usuários',
+                data: newUsers,
+                backgroundColor: 'rgba(13, 110, 253, 0.7)'
+            },
+            {
+                label: 'Novas Receitas',
+                data: newRecipes,
+                backgroundColor: 'rgba(25, 135, 84, 0.7)'
+            },
+            {
+                label: 'Curtidas',
+                data: likes,
+                backgroundColor: 'rgba(220, 53, 69, 0.7)'
+            },
+            {
+                label: 'Comentários',
+                data: comments,
+                backgroundColor: 'rgba(13, 202, 240, 0.7)'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+</script>
+<?php endif; ?> 

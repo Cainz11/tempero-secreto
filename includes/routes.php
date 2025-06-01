@@ -1,7 +1,46 @@
 <?php
 
 // Rotas públicas
-switch ($_GET['route']) {
+$route = isset($_GET['route']) ? $_GET['route'] : 'home';
+
+// Rotas que requerem autenticação
+$auth_routes = [
+    'profile',
+    'my_recipes',
+    'notifications',
+    'edit_recipe',
+    'add_recipe'
+];
+
+// Rotas que requerem privilégios de administrador
+$admin_routes = [
+    'manage_recipes',
+    'manage_categories',
+    'manage_users',
+    'manage_comments',
+    'manage_approvals',
+    'site_settings'
+];
+
+// Verificar autenticação para rotas protegidas
+if (in_array($route, $auth_routes) && !isLoggedIn()) {
+    setMessage('warning', 'Você precisa estar logado para acessar esta página.');
+    redirect(SITE_URL . '?route=login');
+}
+
+// Verificar privilégios de administrador
+if (in_array($route, $admin_routes) && !isAdmin()) {
+    setMessage('danger', 'Você não tem permissão para acessar esta página.');
+    redirect(SITE_URL);
+}
+
+// Redirecionar rota antiga do admin para o perfil
+if ($route === 'admin') {
+    redirect(SITE_URL . '?route=profile');
+}
+
+// Roteamento
+switch ($route) {
     case 'home':
         include 'pages/home.php';
         break;
@@ -34,11 +73,15 @@ switch ($_GET['route']) {
         include 'pages/notifications.php';
         break;
         
-    // Rotas administrativas
-    case 'admin':
-        include 'pages/admin/dashboard.php';
+    case 'edit_recipe':
+        include 'pages/edit_recipe.php';
         break;
         
+    case 'add_recipe':
+        include 'pages/add_recipe.php';
+        break;
+        
+    // Rotas administrativas
     case 'manage_recipes':
         include 'pages/admin/manage_recipes.php';
         break;

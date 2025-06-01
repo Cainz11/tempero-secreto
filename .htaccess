@@ -48,4 +48,8 @@ ErrorDocument 500 /500.php
 # Regras de rewrite para URLs amigáveis
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php?route=$1 [QSA,L] 
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
+
+# Forçar o uso de index.php para rotas
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s/+index\.php\?route=([^\s&]+) [NC]
+RewriteRule ^ %1 [R=301,L] 

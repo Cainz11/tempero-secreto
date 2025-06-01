@@ -1,153 +1,182 @@
 <?php
 // Verificar se o usuário está logado e é admin
 if (!isLoggedIn() || !isAdmin()) {
+    setMessage('danger', 'Acesso negado. Você precisa ser um administrador para acessar esta página.');
     redirect(SITE_URL);
 }
 
 // Processar ações
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        $user_id = $_POST['user_id'] ?? null;
-        
-        switch ($_POST['action']) {
-            case 'toggle_admin':
-                if ($user_id != $_SESSION['user_id']) { // Não permitir que o admin remova seus próprios privilégios
-                    $stmt = $pdo->prepare("UPDATE users SET is_admin = NOT is_admin WHERE id = ?");
-                    $stmt->execute([$user_id]);
-                    setMessage('success', 'Status de administrador atualizado com sucesso!');
+    $action = $_POST['action'] ?? '';
+    $user_id = isset($_POST['user_id']) ? (int)$_POST['user_id'] : 0;
+    
+    if (!$user_id) {
+        setMessage('danger', 'ID do usuário não fornecido.');
+        redirect(SITE_URL . '?route=manage_users');
+    }
+    
+    try {
+        switch ($action) {
+            case 'toggle_status':
+                // Verificar status atual do usuário
+                $stmt = $pdo->prepare("SELECT status FROM users WHERE id = ?");
+                $stmt->execute([$user_id]);
+                $user = $stmt->fetch();
+                
+                if ($user) {
+                    // Alternar entre 'active' e 'blocked'
+                    $new_status = ($user['status'] === 'active') ? 'blocked' : 'active';
+                    
+                    $stmt = $pdo->prepare("UPDATE users SET status = ? WHERE id = ?");
+                    $stmt->execute([$new_status, $user_id]);
+                    
+                    setMessage('success', 'Status do usuário atualizado com sucesso.');
+                } else {
+                    setMessage('danger', 'Usuário não encontrado.');
                 }
                 break;
                 
-            case 'toggle_status':
-                if ($user_id != $_SESSION['user_id']) { // Não permitir que o admin bloqueie a si mesmo
-                    $stmt = $pdo->prepare("UPDATE users SET status = CASE WHEN status = 'active' THEN 'blocked' ELSE 'active' END WHERE id = ?");
-                    $stmt->execute([$user_id]);
-                    setMessage('success', 'Status do usuário atualizado com sucesso!');
+            case 'delete':
+                // Não permitir deletar o próprio usuário
+                if ($user_id === $_SESSION['user_id']) {
+                    setMessage('danger', 'Você não pode deletar sua própria conta.');
+                    break;
+                }
+                
+                $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+                $stmt->execute([$user_id]);
+                setMessage('success', 'Usuário deletado com sucesso.');
+                break;
+                
+            case 'toggle_admin':
+                // Não permitir remover privilégios do próprio usuário
+                if ($user_id === $_SESSION['user_id']) {
+                    setMessage('danger', 'Você não pode alterar seus próprios privilégios de administrador.');
+                    break;
+                }
+                
+                // Verificar status atual do admin
+                $stmt = $pdo->prepare("SELECT is_admin FROM users WHERE id = ?");
+                $stmt->execute([$user_id]);
+                $user = $stmt->fetch();
+                
+                if ($user) {
+                    // Alternar status de admin
+                    $new_admin_status = !$user['is_admin'];
+                    
+                    $stmt = $pdo->prepare("UPDATE users SET is_admin = ? WHERE id = ?");
+                    $stmt->execute([$new_admin_status, $user_id]);
+                    
+                    setMessage('success', 'Privilégios de administrador ' . 
+                        ($new_admin_status ? 'concedidos' : 'removidos') . ' com sucesso.');
+                } else {
+                    setMessage('danger', 'Usuário não encontrado.');
                 }
                 break;
         }
-        redirect(SITE_URL . '?route=manage_users');
+    } catch (PDOException $e) {
+        setMessage('danger', 'Erro ao processar ação: ' . $e->getMessage());
     }
+    
+    redirect(SITE_URL . '?route=manage_users');
 }
 
 // Buscar usuários
-$search = $_GET['search'] ?? '';
-$status_filter = $_GET['status'] ?? 'all';
+try {
+    // Verificar se existe a coluna status na tabela users
+    $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'status'");
+    if (!$stmt->fetch()) {
+        // Se não existir, criar a coluna
+        $pdo->exec("ALTER TABLE users ADD COLUMN status ENUM('active', 'blocked') NOT NULL DEFAULT 'active'");
+    }
 
-$sql = "SELECT * FROM users WHERE 1=1";
-$params = [];
-
-if ($search) {
-    $sql .= " AND (username LIKE ? OR email LIKE ? OR full_name LIKE ?)";
-    $search_param = "%$search%";
-    $params = array_merge($params, [$search_param, $search_param, $search_param]);
+    $stmt = $pdo->query("
+        SELECT id, username, email, full_name, is_admin, created_at, status,
+        (SELECT COUNT(*) FROM recipes WHERE user_id = users.id) as recipe_count
+        FROM users
+        ORDER BY created_at DESC
+    ");
+    $users = $stmt->fetchAll();
+} catch (PDOException $e) {
+    setMessage('danger', 'Erro ao buscar usuários: ' . $e->getMessage());
+    $users = [];
 }
-
-if ($status_filter !== 'all') {
-    $sql .= " AND status = ?";
-    $params[] = $status_filter;
-}
-
-$sql .= " ORDER BY created_at DESC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$users = $stmt->fetchAll();
 ?>
 
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-users"></i> Gerenciar Usuários</h2>
-    </div>
-
-    <!-- Filtros -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="GET" action="" class="row g-3">
-                <input type="hidden" name="route" value="manage_users">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" class="form-control" name="search" 
-                               placeholder="Buscar por nome, email ou username" 
-                               value="<?php echo htmlspecialchars($search); ?>">
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <select class="form-select" name="status" onchange="this.form.submit()">
-                        <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>Todos os Status</option>
-                        <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Ativos</option>
-                        <option value="blocked" <?php echo $status_filter === 'blocked' ? 'selected' : ''; ?>>Bloqueados</option>
-                    </select>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Lista de Usuários -->
-    <div class="card">
+    <h1 class="mb-4">Gerenciar Usuários</h1>
+    
+    <?php displayMessages(); ?>
+    
+    <div class="card shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Usuário</th>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Username</th>
                             <th>Email</th>
+                            <th>Receitas</th>
                             <th>Status</th>
-                            <th>Tipo</th>
-                            <th>Cadastro</th>
+                            <th>Admin</th>
+                            <th>Criado em</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($users as $user): ?>
                             <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-user-circle fa-2x me-2 text-secondary"></i>
-                                        <div>
-                                            <div><?php echo htmlspecialchars($user['full_name']); ?></div>
-                                            <small class="text-muted">@<?php echo htmlspecialchars($user['username']); ?></small>
-                                        </div>
-                                    </div>
-                                </td>
+                                <td><?php echo $user['id']; ?></td>
+                                <td><?php echo htmlspecialchars($user['full_name']); ?></td>
+                                <td><?php echo htmlspecialchars($user['username']); ?></td>
                                 <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td><?php echo $user['recipe_count']; ?></td>
                                 <td>
-                                    <?php if ($user['status'] === 'active'): ?>
-                                        <span class="badge bg-success">Ativo</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-danger">Bloqueado</span>
-                                    <?php endif; ?>
+                                    <span class="badge bg-<?php echo $user['status'] === 'active' ? 'success' : 'danger'; ?>">
+                                        <?php echo $user['status'] === 'active' ? 'Ativo' : 'Bloqueado'; ?>
+                                    </span>
                                 </td>
                                 <td>
-                                    <?php if ($user['is_admin']): ?>
-                                        <span class="badge bg-primary">Administrador</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Usuário</span>
-                                    <?php endif; ?>
+                                    <span class="badge bg-<?php echo $user['is_admin'] ? 'primary' : 'secondary'; ?>">
+                                        <?php echo $user['is_admin'] ? 'Sim' : 'Não'; ?>
+                                    </span>
                                 </td>
                                 <td><?php echo date('d/m/Y', strtotime($user['created_at'])); ?></td>
                                 <td>
-                                    <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                        <form method="POST" action="" class="d-inline">
+                                    <div class="btn-group">
+                                        <form method="POST" class="d-inline me-2">
                                             <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                             <input type="hidden" name="action" value="toggle_status">
-                                            <button type="submit" class="btn btn-sm <?php echo $user['status'] === 'active' ? 'btn-danger' : 'btn-success'; ?>" 
-                                                    title="<?php echo $user['status'] === 'active' ? 'Bloquear' : 'Desbloquear'; ?>">
-                                                <i class="fas <?php echo $user['status'] === 'active' ? 'fa-ban' : 'fa-check'; ?>"></i>
+                                            <button type="submit" class="btn btn-sm btn-<?php echo $user['status'] === 'active' ? 'warning' : 'success'; ?>" 
+                                                    <?php echo $user['id'] === $_SESSION['user_id'] ? 'disabled' : ''; ?>>
+                                                <i class="fas fa-<?php echo $user['status'] === 'active' ? 'ban' : 'check'; ?>"></i>
+                                                <?php echo $user['status'] === 'active' ? 'Bloquear' : 'Ativar'; ?>
                                             </button>
                                         </form>
-                                        <form method="POST" action="" class="d-inline">
+                                        
+                                        <form method="POST" class="d-inline me-2">
                                             <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                             <input type="hidden" name="action" value="toggle_admin">
-                                            <button type="submit" class="btn btn-sm <?php echo $user['is_admin'] ? 'btn-warning' : 'btn-primary'; ?>" 
-                                                    title="<?php echo $user['is_admin'] ? 'Remover Admin' : 'Tornar Admin'; ?>">
-                                                <i class="fas <?php echo $user['is_admin'] ? 'fa-user-minus' : 'fa-user-plus'; ?>"></i>
+                                            <button type="submit" class="btn btn-sm btn-primary"
+                                                    <?php echo $user['id'] === $_SESSION['user_id'] ? 'disabled' : ''; ?>>
+                                                <i class="fas fa-user-shield"></i>
+                                                <?php echo $user['is_admin'] ? 'Remover Admin' : 'Tornar Admin'; ?>
                                             </button>
                                         </form>
-                                    <?php endif; ?>
+                                        
+                                        <form method="POST" class="d-inline" 
+                                              onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');">
+                                            <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <button type="submit" class="btn btn-sm btn-danger"
+                                                    <?php echo $user['id'] === $_SESSION['user_id'] ? 'disabled' : ''; ?>>
+                                                <i class="fas fa-trash"></i>
+                                                Excluir
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -156,4 +185,19 @@ $users = $stmt->fetchAll();
             </div>
         </div>
     </div>
-</div> 
+</div>
+
+<style>
+.btn-group .btn {
+    margin-right: 0.25rem;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.875rem;
+    padding: 0.5em 0.75em;
+}
+</style> 

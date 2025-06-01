@@ -8,6 +8,30 @@ if ($recipe_id <= 0) {
     redirect(SITE_URL . '?route=feed'); // Redirecionar para o feed ou home
 }
 
+// Processar exclusão da receita
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete' && isAdmin()) {
+    if (!verifyCSRFToken($_POST['csrf_token'])) {
+        setMessage('danger', 'Erro de segurança. Tente novamente.');
+        redirect(SITE_URL . '?route=view_recipe&id=' . $recipe_id);
+    }
+
+    try {
+        // Primeiro, excluir os comentários da receita
+        $stmt = $pdo->prepare("DELETE FROM comments WHERE recipe_id = ?");
+        $stmt->execute([$recipe_id]);
+
+        // Depois, excluir a receita
+        $stmt = $pdo->prepare("DELETE FROM recipes WHERE id = ?");
+        $stmt->execute([$recipe_id]);
+
+        setMessage('success', 'Receita excluída com sucesso.');
+        redirect(SITE_URL . '?route=feed');
+    } catch (PDOException $e) {
+        setMessage('danger', 'Erro ao excluir a receita: ' . $e->getMessage());
+        redirect(SITE_URL . '?route=view_recipe&id=' . $recipe_id);
+    }
+}
+
 // Buscar a receita
 try {
     $stmt = $pdo->prepare("
@@ -100,8 +124,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <div class="row">
         <div class="col-md-8 offset-md-2">
             <?php if ($recipe): ?>
-                <h2><?php echo htmlspecialchars($recipe['title']); ?></h2>
-                <p class="text-muted">Por <?php echo htmlspecialchars($recipe['username']); ?> em <?php echo htmlspecialchars($recipe['category_name']); ?></p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2><?php echo htmlspecialchars($recipe['title']); ?></h2>
+                    <?php if (isAdmin()): ?>
+                        <form method="POST" action="" class="d-inline" onsubmit="return confirm('Tem certeza que deseja excluir esta receita? Esta ação não pode ser desfeita.');">
+                            <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                            <input type="hidden" name="action" value="delete">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Excluir Receita
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+                <p class="text-muted">
+                    Por <?php echo htmlspecialchars($recipe['username']); ?> em <?php echo htmlspecialchars($recipe['category_name']); ?>
+                    <?php if ($recipe['status'] !== 'approved'): ?>
+                        <span class="badge bg-warning">Pendente de Aprovação</span>
+                    <?php endif; ?>
+                </p>
 
                 <?php if ($recipe['image_url']): ?>
                     <img src="<?php echo SITE_URL . '/uploads/' . htmlspecialchars($recipe['image_url']); ?>" class="img-fluid mb-3" alt="Imagem da Receita">
