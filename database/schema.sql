@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
+    icon VARCHAR(50) DEFAULT 'fas fa-utensils',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -64,17 +65,17 @@ CREATE TABLE IF NOT EXISTS favorites (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Inserir algumas categorias padrão
-INSERT INTO categories (name, description) VALUES
-('Entrada', 'Pratos para começar a refeição'),
-('Prato Principal', 'Pratos principais para sua refeição'),
-('Sobremesa', 'Sobremesas e doces'),
-('Bebidas', 'Bebidas e coquetéis'),
-('Lanches', 'Lanches rápidos e petiscos'),
-('Saladas', 'Saladas e pratos leves'),
-('Sopas', 'Sopas e caldos'),
-('Vegetariano', 'Pratos vegetarianos'),
-('Vegano', 'Pratos veganos'),
-('Sem Glúten', 'Pratos sem glúten');
+INSERT INTO categories (name, description, icon) VALUES
+('Entrada', 'Pratos para começar a refeição', 'fas fa-cheese'),
+('Prato Principal', 'Pratos principais para sua refeição', 'fas fa-drumstick-bite'),
+('Sobremesa', 'Sobremesas e doces', 'fas fa-ice-cream'),
+('Bebidas', 'Bebidas e coquetéis', 'fas fa-glass-martini-alt'),
+('Lanches', 'Lanches rápidos e petiscos', 'fas fa-hamburger'),
+('Saladas', 'Saladas e pratos leves', 'fas fa-leaf'),
+('Sopas', 'Sopas e caldos', 'fas fa-soup'),
+('Vegetariano', 'Pratos vegetarianos', 'fas fa-carrot'),
+('Vegano', 'Pratos veganos', 'fas fa-seedling'),
+('Sem Glúten', 'Pratos sem glúten', 'fas fa-bread-slice');
 
 -- Criar um usuário administrador padrão
 -- Senha: admin123 (você deve alterar isso após o primeiro login)

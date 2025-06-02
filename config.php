@@ -12,6 +12,12 @@ define('DB_PASS', '');
 // Configurações de upload
 define('UPLOAD_DIR', __DIR__ . '/uploads');
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
+const ALLOWED_IMAGE_TYPES = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif'
+];
 
 // Configurações de timezone
 date_default_timezone_set('America/Sao_Paulo');
@@ -43,4 +49,14 @@ foreach ($directories as $dir) {
     if (!file_exists($dir)) {
         mkdir($dir, 0777, true);
     }
-} 
+}
+
+// Configurações de debug
+if (!defined('DEBUG')) {
+    define('DEBUG', true);
+}
+
+// Configurações de sessão
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_secure', 0); // Mude para 1 em produção com HTTPS 
